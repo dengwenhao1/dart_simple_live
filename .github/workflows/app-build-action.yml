@@ -1,0 +1,58 @@
+name: app-build-action
+# 推送Tag时触发
+on:
+  push:
+    tags:
+      - "dev_tv_v*"
+
+jobs:
+  build-tv:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      # 1. 签出代码
+      - uses: actions/checkout@v4
+        # 【修改点】我把 with: ref: dev 删掉了。
+        # 这样它会自动签出你触发 Action 时推送的那个 Tag/版本。
+        # 如果你非要指定分支，请确保那个分支真实存在（比如写 ref: master）。
+
+      # 2. 设置 JAVA 环境
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+
+      # 3. 设置 Flutter
+      - name: Flutter action
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.x"
+          cache: true
+
+      # 4. 更新 Flutter 的 packages
+      - name: Restore packages
+        run: |
+          cd simple_live_tv_app
+          flutter pub get
+
+      # 5. 打包 APK (只构建 ARM 架构，专门针对电视)
+      - name: Build APK
+        run: |
+          cd simple_live_tv_app
+          # --target-platform 限制只编译 ARM 架构
+          # --split-per-abi 生成独立的 apk 文件
+          flutter build apk --release --target-platform android-arm,android-arm64 --split-per-abi
+
+      # 6. 上传 APK 至 Artifacts (只上传电视能用的)
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android_tv
+          path: |
+            simple_live_tv_app/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            simple_live_tv_app/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+      # 7. 完成
+      - run: echo "🍏 Build finished. Please install app-armeabi-v7a-release.apk for Android 6.0 TV."

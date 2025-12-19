@@ -8,43 +8,46 @@ on:
 
 jobs:
   build-tv:
-    runs-on: ubuntu-latest # 建议改回 ubuntu-latest，构建速度更快，且环境对老版本 Flutter 更稳定
+    runs-on: ubuntu-latest # 使用 Ubuntu 编译更稳
     permissions:
       contents: write
       
     steps:
       - uses: actions/checkout@v4
 
-      # 使用 Java 11 (配合 Flutter 3.19.x 最稳妥的选择，比 Java 17 兼容性更好)
+      # 1. 使用 Java 17 (配合 Flutter 3.24.x)
       - uses: actions/setup-java@v4
         with:
           distribution: "zulu"
-          java-version: "11"
+          java-version: "17"
           cache: "gradle"
 
-      # 【关键修改】锁定 Flutter 版本为 3.19.6 (兼容性之王)
+      # 2. 使用 Flutter 3.24.5 (稳定版，解决依赖报错)
       - name: Flutter action
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.19.6"
+          flutter-version: "3.24.5"
           cache: true
 
+      # 3. 清理缓存并拉取依赖 (关键：先删锁文件)
       - name: Restore packages
         run: |
           cd simple_live_tv_app
+          rm -f pubspec.lock
           flutter pub get
 
-      # 打包通用 APK
+      # 4. 打包通用 APK
+      # 注意：我们在 gradle 里配置了兼容性，所以这里直接 build 即可
       - name: Build APK
         run: |
           cd simple_live_tv_app
-          # 3.19.x 版本完全支持 android-arm,android-arm64
           flutter build apk --release --target-platform android-arm,android-arm64
 
+      # 5. 上传
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android_tv_legacy
+          name: android_tv_fixed
           path: simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
 
-      - run: echo "🍏 Build finished using Flutter 3.19.6. This should work on Android 6.0."
+      - run: echo "🍏 Build finished. Install 'app-release.apk' on your TV."

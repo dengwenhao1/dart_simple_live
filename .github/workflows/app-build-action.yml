@@ -1,13 +1,62 @@
-# 打包APK (改为通用包，不拆分，排除拆分包命名导致的安装错误)
+name: app-build-action
+
+# 触发条件
+on:
+  # 1. 允许手动点击 "Run workflow" 按钮触发
+  workflow_dispatch:
+  
+  # 2. 推送 Tag 时自动触发
+  push:
+    tags:
+      - "dev_tv_v*"
+
+jobs:
+  build-tv:
+    # 编译环境
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      
+    steps:
+      # 1. 签出代码
+      - uses: actions/checkout@v4
+        # 不指定 ref，默认签出当前分支或 Tag
+
+      # 2. 设置 JAVA 环境 (Java 17 适配 Flutter 3.x)
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+
+      # 3. 设置 Flutter 环境
+      - name: Flutter action
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.x"
+          cache: true
+
+      # 4. 下载依赖包
+      - name: Restore packages
+        run: |
+          cd simple_live_tv_app
+          flutter pub get
+
+      # 5. 打包 APK (关键步骤)
+      # 此时使用的是 build.gradle.kts 里配置的 debug 签名，无需密钥
+      # 去掉了 --split-per-abi，生成包含所有架构的通用包，兼容性最强
       - name: Build APK
         run: |
           cd simple_live_tv_app
-          # 去掉 --split-per-abi，生成一个包含所有架构的通用包
           flutter build apk --release --target-platform android-arm,android-arm64
 
-      # 上传
+      # 6. 上传 APK 至 Artifacts
+      # 注意：不拆分包的情况下，生成的文件名默认是 app-release.apk
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android_tv_fat
+          name: android_tv_universal
           path: simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
+
+      # 7. 完成提示
+      - run: echo "🍏 Build finished. Please download 'android_tv_universal' and install app-release.apk"

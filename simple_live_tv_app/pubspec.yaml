@@ -32,14 +32,14 @@ dependencies:
   extended_image: ^10.0.1 #拓展Image,支持缓存
   flutter_smart_dialog: ^4.9.8+9 #各种弹窗 Toast/Dialog/Popup
   marquee: ^2.3.0 #跑马灯
-  lottie: ^3.3.2 #Lottie动画
+  lottie: ^3.3.2 #Lottie动画 (下面override会强制覆盖它)
   qr_flutter: ^4.1.0 #二维码
   sticky_headers: ^0.3.0+2 #吸顶
   canvas_danmaku: ^0.2.7 #弹幕
 
   #系统交互
   package_info_plus: ^9.0.0 #包信息
-  url_launcher: ^6.3.2 #打开链接
+  url_launcher: ^6.3.2 #打开链接 (下面override会强制覆盖它)
   network_info_plus: ^7.0.0
   shelf: ^1.4.2
   shelf_router: ^1.1.4
@@ -52,8 +52,13 @@ dependencies:
   media_kit_video: ^1.3.1
   media_kit_libs_video: ^1.0.7
 
+# 【重点修改】在这里强制覆盖依赖版本，解决报错
 dependency_overrides:
   fading_edge_scrollview: ^4.1.1
+  # 强制降级 lottie，解决 "SDK version" 报错
+  lottie: 3.1.3
+  # 强制降级 url_launcher，解决依赖冲突
+  url_launcher: 6.3.0
 
 dev_dependencies:
   flutter_test:

@@ -8,12 +8,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace = "com.xycz.simple_live_tv"
     compileSdk = flutter.compileSdkVersion
@@ -33,27 +27,25 @@ android {
         applicationId = "com.xycz.simple_live_tv"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21
+        
+        // 【关键修改1】强制改为 21，兼容 Android 6.0
+        minSdk = 21 
+        
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
-            isV1SigningEnabled = true
-            isV2SigningEnabled = true
-        }
-    }
+    // 【关键修改2】我删除了原来的 signingConfigs { create("release") ... } 代码块
+    // 因为你没有密钥，保留那段代码会导致编译报错（空指针异常）。
+    // 现在直接使用默认的 debug 签名配置，无需任何设置。
 
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("release")
+            // 【关键修改3】这里改成了 signingConfigs.getByName("debug")
+            // 这样打包时会使用测试签名，没有密钥也能安装
+            signingConfig = signingConfigs.getByName("debug")
+            
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

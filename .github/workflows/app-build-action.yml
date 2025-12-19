@@ -8,46 +8,47 @@ on:
 
 jobs:
   build-tv:
-    runs-on: ubuntu-latest # 使用 Ubuntu 编译更稳
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       
     steps:
       - uses: actions/checkout@v4
 
-      # 1. 使用 Java 17 (配合 Flutter 3.24.x)
+      # 1. 使用 Java 17 (Flutter 3.27+ 必须使用 Java 17)
       - uses: actions/setup-java@v4
         with:
           distribution: "zulu"
           java-version: "17"
           cache: "gradle"
 
-      # 2. 使用 Flutter 3.24.5 (稳定版，解决依赖报错)
+      # 2. 使用 Flutter 3.27.1 (包含 Dart 3.6.0，解决依赖报错)
       - name: Flutter action
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.5"
+          flutter-version: "3.27.1" # 升级到最新版
+          channel: 'stable'
           cache: true
 
-      # 3. 清理缓存并拉取依赖 (关键：先删锁文件)
+      # 3. 清理并拉取依赖
       - name: Restore packages
         run: |
           cd simple_live_tv_app
-          rm -f pubspec.lock
+          rm -f pubspec.lock # 删除旧锁文件，防止冲突
           flutter pub get
 
       # 4. 打包通用 APK
-      # 注意：我们在 gradle 里配置了兼容性，所以这里直接 build 即可
       - name: Build APK
         run: |
           cd simple_live_tv_app
+          # 使用通用平台构建，不拆分，兼容性最好
           flutter build apk --release --target-platform android-arm,android-arm64
 
       # 5. 上传
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android_tv_fixed
+          name: android_tv_final
           path: simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
 
-      - run: echo "🍏 Build finished. Install 'app-release.apk' on your TV."
+      - run: echo "🍏 Build finished. Please install app-release.apk"
